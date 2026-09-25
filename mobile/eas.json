@@ -17,7 +17,8 @@
     "production": {
       "ios": {
         "resourceClass": "m-medium",
-        "distribution": "store"
+        "distribution": "store",
+        "autoIncrement": true
       },
       "android": {
         "buildType": "apk"
@@ -32,7 +33,8 @@
     "testflight": {
       "ios": {
         "resourceClass": "m-medium",
-        "distribution": "store"
+        "distribution": "store",
+        "autoIncrement": true
       }
     }
   },
