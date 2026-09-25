@@ -16,7 +16,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import colors from '../styles/colors';
 import globalStyles from '../styles/globalStyles';
 import Button from '../components/Button';
-import { profileAPI, setAuthToken } from '../services/api';
+import { authAPI, profileAPI, setAuthToken } from '../services/api';
 import { styles } from '../styles/ProfileScreenStyles';
 
 const ProfileScreen = ({ navigation }) => {
@@ -86,6 +86,37 @@ const ProfileScreen = ({ navigation }) => {
           },
         ]
       );
+    }
+  };
+
+  const deleteAccount = async () => {
+    try {
+      await authAPI.deleteAccount();
+      await AsyncStorage.removeItem('authToken');
+      await AsyncStorage.removeItem('user');
+      setAuthToken(null);
+      // App.js will detect auth change and show Welcome screen
+    } catch (error) {
+      const message =
+        error.response?.data?.error || 'Could not delete your account. Please try again.';
+      if (Platform.OS === 'web') {
+        window.alert(message);
+      } else {
+        Alert.alert('Error', message);
+      }
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    const message =
+      'This permanently deletes your account, workouts, classes, and all other data. This cannot be undone.';
+    if (Platform.OS === 'web') {
+      if (window.confirm(message)) deleteAccount();
+    } else {
+      Alert.alert('Delete Account', message, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: deleteAccount },
+      ]);
     }
   };
 
@@ -177,6 +208,12 @@ const ProfileScreen = ({ navigation }) => {
             onPress={handleLogout}
             style={styles.logoutButton}
           />
+          <TouchableOpacity
+            style={styles.deleteAccountButton}
+            onPress={handleDeleteAccount}
+          >
+            <Text style={styles.deleteAccountText}>Delete Account</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={{ height: 100 }} />

@@ -2,6 +2,9 @@ from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from models import db
 from models.user import User, PasswordResetToken
+from models.workout import Workout, Routine
+from models.classes import Class, ClassMembership, ClassJoinRequest, AssignedWorkout, StudentWorkoutLog
+from models.macros import MacroGoal, Meal, DailyIntake
 import jwt
 import secrets
 import os
@@ -300,6 +303,38 @@ def get_current_user():
         return jsonify({'error': 'User not found'}), 404
     
     return jsonify({'user': user.to_dict()}), 200
+
+@bp.route('/me', methods=['DELETE'])
+@jwt_required()
+def delete_account():
+    """Permanently delete the current user and everything they own."""
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    # SQLite doesn't enforce foreign keys here, so remove dependents explicitly.
+    # Logs pointing at this user's workouts go first, whoever they belong to.
+    own_workout_ids = [w.id for w in Workout.query.with_entities(Workout.id).filter_by(user_id=user_id)]
+    StudentWorkoutLog.query.filter(
+        (StudentWorkoutLog.student_id == user_id) | StudentWorkoutLog.workout_id.in_(own_workout_ids)
+    ).delete(synchronize_session=False)
+    # Deleting a class cascades to its memberships, join requests and assignments.
+    for class_ in Class.query.filter_by(instructor_id=user_id).all():
+        db.session.delete(class_)
+    for assignment in AssignedWorkout.query.filter_by(instructor_id=user_id).all():
+        db.session.delete(assignment)
+    db.session.flush()
+    for model in (ClassMembership, ClassJoinRequest):
+        model.query.filter_by(student_id=user_id).delete(synchronize_session=False)
+    for model in (Routine, MacroGoal, Meal, DailyIntake, PasswordResetToken):
+        model.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+    # Workouts cascade to their exercises and sets.
+    db.session.delete(user)
+    db.session.commit()
+
+    return jsonify({'message': 'Account deleted'}), 200
 
 @bp.route('/change-password', methods=['POST'])
 @jwt_required()

@@ -43,5 +43,14 @@ export const styles = StyleSheet.create({
   logoutButton: {
     width: '100%',
   },
+  deleteAccountButton: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  deleteAccountText: {
+    color: colors.danger,
+    fontSize: 14,
+    fontWeight: '500',
+  },
 });
 
