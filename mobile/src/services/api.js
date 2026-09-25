@@ -85,6 +85,7 @@ export const authAPI = {
   register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),
   google: (data) => api.post('/auth/google', data),
+  apple: (data) => api.post('/auth/apple', data),
   getCurrentUser: () => api.get('/auth/me'),
   changePassword: (data) => api.post('/auth/change-password', data),
   forgotPassword: (data) => api.post('/auth/forgot-password', data),

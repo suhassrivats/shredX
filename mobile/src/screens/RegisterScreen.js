@@ -16,7 +16,9 @@ import Button from '../components/Button';
 import Input from '../components/Input';
 import colors from '../styles/colors';
 import { authAPI, setAuthToken } from '../services/api';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import useGoogleSignIn from '../hooks/useGoogleSignIn';
+import useAppleSignIn from '../hooks/useAppleSignIn';
 
 const RegisterScreen = ({ navigation }) => {
   const [isLogin, setIsLogin] = useState(false);
@@ -31,6 +33,7 @@ const RegisterScreen = ({ navigation }) => {
   const [errors, setErrors] = useState({});
 
   const { signIn: handleGoogleSignIn, loading: googleLoading } = useGoogleSignIn();
+  const { signIn: handleAppleSignIn, available: appleAvailable } = useAppleSignIn();
 
   const validateForm = () => {
     const newErrors = {};
@@ -253,6 +256,15 @@ const RegisterScreen = ({ navigation }) => {
             </View>
 
             <View style={styles.socialButtons}>
+              {appleAvailable && (
+                <AppleAuthentication.AppleAuthenticationButton
+                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+                  cornerRadius={12}
+                  style={styles.appleButton}
+                  onPress={handleAppleSignIn}
+                />
+              )}
               <TouchableOpacity
                 style={styles.socialButton}
                 onPress={handleGoogleSignIn}
@@ -382,6 +394,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
     gap: 12,
+  },
+  appleButton: {
+    height: 48,
   },
   socialButtonText: {
     color: colors.textPrimary,

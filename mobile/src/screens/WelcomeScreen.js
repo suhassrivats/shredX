@@ -11,9 +11,15 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Button from '../components/Button';
 import colors from '../styles/colors';
 import useGoogleSignIn from '../hooks/useGoogleSignIn';
+import useAppleSignIn from '../hooks/useAppleSignIn';
 
 const WelcomeScreen = ({ navigation }) => {
   const { signIn: handleGoogleSignIn, loading: googleLoading } = useGoogleSignIn();
+  const {
+    signIn: handleAppleSignIn,
+    loading: appleLoading,
+    available: appleAvailable,
+  } = useAppleSignIn();
   return (
     <View style={styles.container}>
       <View style={styles.gradient}>
@@ -82,6 +88,16 @@ const WelcomeScreen = ({ navigation }) => {
             </View>
 
             <View style={styles.socialButtons}>
+              {appleAvailable && (
+                <TouchableOpacity
+                  style={styles.socialButton}
+                  onPress={handleAppleSignIn}
+                  disabled={appleLoading}
+                  accessibilityLabel="Sign in with Apple"
+                >
+                  <Icon name="apple" size={24} color={colors.textPrimary} />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 style={styles.socialButton}
                 onPress={handleGoogleSignIn}

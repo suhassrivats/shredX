@@ -17,6 +17,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.shredx.mobile",
+      "usesAppleSignIn": true,
       "buildNumber": "3",
       "infoPlist": {
         "NSCameraUsageDescription": "This app needs access to your camera to take profile photos.",
@@ -39,7 +40,8 @@
     },
     "owner": "suhassrivats",
     "plugins": [
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-apple-authentication"
     ],
     "extra": {
       "eas": {

@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from models import db
 from models.user import User, PasswordResetToken
+import jwt
 import secrets
 import os
 import smtplib
@@ -210,6 +211,71 @@ def google_login():
                 google_sub=sub,
                 full_name=full_name,
                 avatar_url=avatar_url,
+                role='student',
+            )
+            db.session.add(user)
+        db.session.commit()
+
+    access_token = create_access_token(identity=str(user.id))
+    return jsonify({
+        'message': 'Login successful',
+        'user': user.to_dict(),
+        'access_token': access_token,
+    }), 200
+
+
+_apple_jwks = jwt.PyJWKClient('https://appleid.apple.com/auth/keys')
+
+
+@bp.route('/apple', methods=['POST'])
+def apple_login():
+    """Sign in or sign up with a Sign in with Apple identity token from iOS."""
+    data = request.get_json() or {}
+    token = data.get('identity_token')
+    if not token:
+        return jsonify({'error': 'identity_token is required'}), 400
+
+    raw_ids = os.getenv('APPLE_BUNDLE_IDS', 'com.shredx.mobile')
+    accepted_ids = [bid.strip() for bid in raw_ids.split(',') if bid.strip()]
+
+    try:
+        signing_key = _apple_jwks.get_signing_key_from_jwt(token)
+        claims = jwt.decode(
+            token,
+            signing_key.key,
+            algorithms=['RS256'],
+            audience=accepted_ids,
+            issuer='https://appleid.apple.com',
+        )
+    except jwt.PyJWTError as e:
+        return jsonify({'error': f'Invalid Apple token: {e}'}), 401
+
+    sub = claims.get('sub')
+    if not sub:
+        return jsonify({'error': 'Apple token missing sub'}), 400
+    email = (claims.get('email') or '').lower()
+    # Apple sends email_verified as either a bool or the string "true".
+    email_verified = str(claims.get('email_verified')).lower() == 'true'
+    # Apple only returns the user's name to the client, and only on first sign-in.
+    full_name = (data.get('full_name') or '').strip() or None
+
+    user = User.query.filter_by(apple_sub=sub).first()
+    if user is None:
+        if not email:
+            return jsonify({'error': 'Apple token missing email'}), 400
+        user = User.query.filter_by(email=email).first() if email_verified else None
+        if user is not None:
+            user.apple_sub = sub
+            if not user.full_name and full_name:
+                user.full_name = full_name
+        else:
+            if User.query.filter_by(email=email).first():
+                return jsonify({'error': 'Email already registered'}), 409
+            user = User(
+                email=email,
+                username=_unique_username_from_email(email),
+                apple_sub=sub,
+                full_name=full_name,
                 role='student',
             )
             db.session.add(user)
